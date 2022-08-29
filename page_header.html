@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8" />
+<title>sunflower</title>
+</head>
+<body>
+
+<th:block th:fragment="pageHeader">
+	<script src="http://code.jquery.com/jquery-3.4.1.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+	<link rel="stylesheet"
+			href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+	<script src="/js/util/stringUtil.js" th:src="@{/js/util/stringUtil.js}"></script>
+	<script src="/js/util/validator.js" th:src="@{/js/util/validator.js}"></script>
+	<script src="/js/dialogConfig.js" th:src="@{/js/dialogConfig.js}"></script>
+	<script th:inline="javascript">
+	$(() => { 
+		$('#loginError').dialog(dialogConfig.loginError);
+		
+		getLoginSession();
+		
+		$('button#login').on('click',(event) => {
+			event.preventDefault();
+				let jsonString = {
+				userName : $('div.loginArea input[name=userName]').val(),
+				password : $('div.loginArea input[name=password]').val()	
+				};
+			$.ajax({
+				type : 'POST',
+				url : '/sunflower/auth/login',
+				data : JSON.stringify(jsonString),
+				contentType : 'application/json',
+				datatype : 'json',
+				sctiptCharset : 'utf-8'
+			})
+			.then((result)=> {
+				if(result==="") {
+					$( '#hiddenUserName' ).val('');
+					$('#loginError').dialog('open');
+				}else{
+					let user = JSON.parse(result);
+					$( '#hiddenUserName' ).val(user['userName'])
+					login(user);
+				}
+			}, () => {
+					console.error('Error:ajax connection failed. ');
+			});
+		});
+		
+		$('button#logout').on('click', (event) => {
+			event.preventDefault();
+			$.ajax({
+				type: 'POST',
+				url: '/sunflower/auth/logout',
+				scriptCharset: 'utf-8'
+			})
+			.then((result) => {
+				$('#hiddenUserName').val('');
+				logout();
+				alert('ログアウトしました。');
+				location.replace('/sunflower/');
+			}, () => {
+				alert('Error: ajax connection failed.');
+			});
+		});
+		
+	});
+	
+	let getLoginSession =() =>{
+		$.ajax({
+			type : 'POST',
+			url : '/sunflower/auth/getLoginSession',
+			sctiptCharset : 'utf-8'
+		})
+		.then((result)=> {
+			if(isEmpty(result)) {
+				$( '#welcomeMsg' ).text(` ようこそ！ゲスト さん`);
+				$( '#hiddenUserName' ).val('');
+				$( 'div.loginArea input[name=userName]' ).val('');
+				$( 'div.loginArea input[name=password]' ).val('');
+				$('button#logout').addClass('hidden');
+				$('button#login').removeClass('hidden');
+			} else {
+				$( '#welcomeMsg' ).text("ようこそ！"+" "+ result +" "+"さん");
+				$( '#hiddenUserName' ).val(result);
+				$( 'div.loginArea input[name=userName]' ).val('');
+				$( 'div.loginArea input[name=password]' ).val('');
+				$('button#login').addClass('hidden');
+				$('button#logout').removeClass('hidden');
+			}
+		});
+	}
+	
+	function login(user) {
+		let userName = user['userName'];
+		$('.welcomeMsg').text(`ようこそ！ ${userName} さん`);
+		if (isEmpty($('button#login').prop('class'))) {
+			$('button#login').addClass('hidden');
+			$('button#logout').removeClass('hidden');
+		}
+		
+		$( 'div.loginArea input[name=userName]' ).val('');
+		$( 'div.loginArea input[name=password]' ).val('');
+	}
+	
+	function logout() {
+		$('.welcomeMsg').text(`ようこそ！ ゲスト さん`);
+		if (isEmpty($('button#logout').prop('class'))) {
+			$('button#logout').addClass('hidden');
+			$('button#login').removeClass('hidden');
+		}
+		
+		$( 'div.loginArea input[name=userName]' ).val('');
+		$( 'div.loginArea input[name=password]' ).val('');
+	}
+	</script>
+	
+	<div class="headerTop">
+		<h1 class="logo"><a href="/sunflower/"th:href="@{/sunflower/}">Interior YU</a></h1>
+		<span class="signup">
+			<a href="/sunflower/user/" th:href="@{/sunflower/user/}">
+			新規ユーザ登録はこちら
+			</a>
+		</span>
+		<span class="welcomeMsg" id="welcomeMsg"></span>
+	</div>
+		 
+	<nav>
+		<div class="loginArea">
+				<input type="text" name="userName" />
+			    <input type="password" name="password" />
+			    <input type="hidden" id="hiddenUserName" />
+				<button id="login" th:class="${loginSession == null || loginSession.getUserName() == null ? '' : 'hidden'}">ログイン</button>
+				<button id="logout" th:class="${loginSession == null || loginSession.getUserName() == null ? 'hidden' : ''}">ログアウト</button>
+		</div>
+			<ul class="menu">
+				<li id="cartMenu"><a href="/sunflower/cart/" th:href="@{/sunflower/cart/}">カート</a></li>
+			</ul>
+	</nav>
+		
+	<div th:insert="fragments/dialog_login_error::dialogLoginError"></div>		
+</th:block>
+
+</body>
+</html>
